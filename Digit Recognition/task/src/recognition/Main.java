@@ -3,27 +3,130 @@ import java.util.Scanner;
 
 class NetworkLayers{
 
-    private char[][] charArray = new char[5][3];
-    private int[][] intArray = new int[5][3];
-    private static int[] bias = {-2, -1, 0, 1, 2, 3, 6};
     private int[] resultsArray = new int[10];
+    private static double learningRateCoefficient = 0.5;
+    private double[][] outputNeurons = new double[10][10];
 
-    private static int[][] weights = {
-            {1, 1, 1, 1, -1, 1, 1, -1, 1, 1, -1, 1, 1, 1, 1}, //0
-            {-1, 1, -1, -1, 1, -1, -1, 1, -1, -1, 1, -1, -1, 1, -1}, //1
-            {1, 1, 1, -1, -1, 1, 1, 1, 1, 1, -1, -1, 1, 1, 1}, //2
-            {1, 1, 1, -1, -1, 1, 1, 1, 1, -1, -1, 1, 1, 1, 1}, //3
-            {1, -1, 1, 1, -1, 1, 1, 1, 1, -1, -1, 1, -1, -1, 1}, //4
-            {1, 1, 1, 1, -1, -1, 1, 1, 1, -1, -1, 1, 1, 1, 1}, //5
-            {1, 1, 1, 1, -1, -1, 1, 1, 1, 1, -1, 1, 1, 1, 1}, //6
-            {1, 1, 1, -1, -1, 1, -1, -1, 1, -1, -1, 1, -1, -1, 1}, //7
-            {1, 1, 1, 1, -1, 1, 1, 1, 1, 1, -1, 1, 1, 1, 1}, //8
-            {1, 1, 1, 1, -1, 1, 1, 1, 1, -1, -1, 1, 1, 1, 1} //9
+    private static double[][] idealNeurons = {
+            {1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1},  //0
+            {0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1},  //1
+            {1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1},  //2
+            {1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1},  //3
+            {1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1},  //4
+            {1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1},  //5
+            {1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1},  //6
+            {1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1},  //7
+            {1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1},  //8
+            {1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1}   //9
     };
 
-    private void input(){
+    private double weights[][] = {
+            {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+            {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+            {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+            {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+            {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+            {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+            {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+            {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+            {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+            {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+    };
+
+    private static double[][] idealOutput = {
+            {1, 0, 0, 0, 0, 0, 0, 0, 0, 0}, //0
+            {0, 1, 0, 0, 0, 0, 0, 0, 0, 0}, //1
+            {0, 0, 1, 0, 0, 0, 0, 0, 0, 0}, //2
+            {0, 0, 0, 1, 0, 0, 0, 0, 0, 0}, //3
+            {0, 0, 0, 0, 1, 0, 0, 0, 0, 0}, //4
+            {0, 0, 0, 0, 0, 1, 0, 0, 0, 0}, //5
+            {0, 0, 0, 0, 0, 0, 1, 0, 0, 0}, //6
+            {0, 0, 0, 0, 0, 0, 0, 1, 0, 0}, //7
+            {0, 0, 0, 0, 0, 0, 0, 0, 1, 0}, //8
+            {0, 0, 0, 0, 0, 0, 0, 0, 0, 1}  //9
+    };
+
+    /* Method to calculate output neurons with the Sigmoid function */
+
+    private void makeOutputNeurons(){
+        double outputNeuron = 0;
+
+        for (int i = 0; i < 10; i++){
+            for (int j = 0; j < 10; j++){
+                for (int k = 0; k < idealNeurons[j].length; k++){
+                    outputNeuron += idealNeurons[j][k] * weights[i][k];
+                }
+                outputNeuron = 1 / (1 + Math.exp(-outputNeuron)); // Segmoid function implementation
+                outputNeurons[i][j] = outputNeuron;
+                outputNeuron = 0;
+            }
+        }
+    }
+
+    public void learningModel(){
+        boolean neuronCheck;
+        double[][] deltaRules = new double[10][15];
+
+        for(int position = 0; position < idealNeurons.length; position++){
+            neuronCheck = checkValid(idealNeurons[position], position);
+
+            while(neuronCheck == false){
+                for(int i = 0; i < deltaRules.length; i++){
+                    for (int  j = 0; j < deltaRules[i].length; j++){
+                        deltaRules[i][j] = deltaRule(idealNeurons[i][j], idealNeurons[position][j], outputNeurons[position][i]);
+                    }
+                }
+                //Adjust Weights
+                adjustWeights(deltaRules,position);
+                //re-calculate output o for each test from number 0 to 9
+                makeOutputNeurons();
+                //Check if we need to stop for that particular output o
+                neuronCheck = checkValid(idealNeurons[position], position);
+                //System.out.println("MY WEIGHTS--> "+ Arrays.toString(outputs));
+                System.out.println("NEXT NEURON");
+            }
+            //now next neuron
+            System.out.println("NEXT NEURON");
+        }
+    }
+
+    public boolean checkValid(double[] outputNeuron, int outputNeuronPosition){
+        boolean isIdeal = true;
+
+        for(int i = 0; i < 10; i++){
+            if(outputNeuron[i] != idealOutput[outputNeuronPosition][i]){
+                isIdeal = false;
+                break;
+            }
+        }
+        return isIdeal;
+    }
+
+    public double deltaRule(double ai, double ojIdeal, double oj){
+        return learningRateCoefficient * ai * (ojIdeal - oj);
+    }
+
+    public void adjustWeights(double[][] delta, int positionOutputBeingTested){
+        double mean = 0;
+        for(int j = 0; j < 15; j++){
+            for(int i = 0; i < 10; i++){
+                mean += delta[i][j];
+            }
+            mean = mean / 10;
+            weights[positionOutputBeingTested][j] += mean;
+            mean = 0;
+        }
+    }
+}
+
+class Menue {
+
+    private Scanner sc = new Scanner(System.in);
+    private char[][] charArray = new char[5][3];
+    private int[][] intArray = new int[5][3];
+
+    public void input(){
         System.out.println("Input grid:");
-        Scanner sc = new Scanner(System.in);
         for(int i = 0; i < charArray.length; i++){
             String input = sc.nextLine();
             for(int j = 0; j < charArray[i].length; j++){
@@ -42,54 +145,19 @@ class NetworkLayers{
                     intArray[i][j] = 1;
             }
         }
-    }
 
-    public void calc(){
-        input();
-        int out_neuron = 0;
-        int biggest_neuron = 0;
-        int position = 0;
-        int wcol = 0;
-
-        for(int wrow = 0; wrow < 10; wrow++){
-            for(int nrow = 0; nrow < intArray.length; nrow++){
-                for(int ncol =0; ncol < intArray[nrow].length; ncol++){
-                    out_neuron += intArray[nrow][ncol] * weights[wrow][wcol];
-                    wcol++;
-                }
+        for(int i = 0; i < intArray.length; i++){
+            for(int j = 0; j < intArray[i].length; j++){
+                System.out.print(intArray[i][j]);
             }
-
-            if(wrow == 0 || wrow == 6 || wrow == 9){
-                out_neuron += bias[1];
-            } else if (wrow == 1){
-                out_neuron += bias[6];
-            } else if (wrow == 2){
-                out_neuron += bias[3];
-            } else if (wrow == 3 || wrow == 5){
-                out_neuron += bias[2];
-            } else if (wrow == 4){
-                out_neuron += bias[4];
-            } else if (wrow == 7){
-                out_neuron += bias[5];
-            } else if (wrow == 8){
-                out_neuron += bias[0];
-            }
-
-            if(out_neuron > biggest_neuron){
-                biggest_neuron = out_neuron;
-                position = wrow;
-            }
-            wcol = 0;
-            out_neuron = 0;
+            System.out.println();
         }
-        System.out.println("This number is " + position);
     }
 }
 
 public class Main {
     public static void main(String[] args) {
-        // write your code here
-        NetworkLayers neural = new NetworkLayers();
-        neural.calc();
+        NetworkLayers newLayer = new NetworkLayers();
+        newLayer.learningModel();
     }
 }
